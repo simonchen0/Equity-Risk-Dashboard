@@ -31,6 +31,9 @@ nav = st.navigation(
 
 # Risk settings apply to every page, so they sit in one slim strip under the top bar.
 label_col, lookback_col, blume_col, _ = st.columns([2, 4, 5, 8], vertical_alignment="center")
+if st.session_state.lookback_label not in LOOKBACKS:
+    # Clicking the selected option again deselects it (value None): keep the last valid choice.
+    st.session_state.lookback_label = st.session_state.saved_settings[0]
 label_col.markdown('<span class="control-label">Lookback</span>', unsafe_allow_html=True)
 lookback_col.segmented_control(
     "Lookback",
