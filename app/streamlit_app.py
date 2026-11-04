@@ -37,6 +37,7 @@ nav = st.navigation(
         st.Page("views/overview.py", title="Overview", icon=":material/dashboard:", default=True),
         st.Page("views/risk.py", title="Risk", icon=":material/analytics:"),
         st.Page("views/scenarios.py", title="Scenarios", icon=":material/trending_down:"),
+        st.Page("views/hedging.py", title="Hedging", icon=":material/shield:"),
         st.Page("views/positions.py", title="Positions", icon=":material/edit_note:"),
     ]
 )

@@ -27,8 +27,8 @@ Editable positions (long/short), cash balance, CSV import/export with row-level 
 **2. Scenario analysis** ✅ Done
 Scenarios page: portfolio P&L across an S&P 500 shock grid (−20% to +20%, chart and table, in $ and % of NAV), plus a custom shock input with a per-position breakdown (biggest losses first).
 
-**3. Hedging calculator** ⬜ Not started
-Given a target beta, compute SPY shares and ES/MES futures contracts, the residual beta after rounding, and before/after metrics with the hedge applied.
+**3. Hedging calculator** ✅ Done
+Hedging page: enter a target beta (default 0, market-neutral) and pick SPY, ES or MES. Shows exact and whole-unit trade sizes for all three instruments, the beta left over from rounding, and a before/after comparison for the chosen hedge (beta, dollar beta, volatility, net/gross exposure, P&L for S&P ±10%) plus a hedged vs unhedged scenario table.
 
 **4. Risk alerts** ⬜ Not started
 Configurable limits (YAML defaults plus UI overrides), each evaluated as OK / warn (≥ 80% of the limit) / breach:
@@ -63,7 +63,7 @@ Alerts show on the Overview page.
 | Correlation | Pearson correlation of daily returns over the same common window; average pairwise = mean of off-diagonal values |
 | Sector exposure | Long = Σ positive weights, short = Σ negative weights, net = long + short, gross = Σ \|w\|. Sector = user override, otherwise Yahoo's sector, otherwise "Unclassified". |
 | Scenarios | P&L_i = market value_i × beta_i × S&P move; total = dollar beta × move; % of NAV uses current NAV. A position with a missing beta makes the total NaN rather than understating it. Linear and systematic-only (no stock-specific or nonlinear effects). |
-| Hedge sizing (planned) | Notional H = (β_target − β_portfolio) × NAV. SPY shares = H / P_SPY; ES = H / (F × $50); MES = H / (F × $5). Rounded to whole units; basis, carry, dividends and margin ignored. |
+| Hedge sizing | Notional H = (β_target − β_portfolio) × NAV. SPY shares = H / P_SPY; ES = H / (F × $50); MES = H / (F × $5). Rounded to the nearest whole unit (halves away from zero). Hedge beta assumed 1. Hedged volatility treats the hedge as SPY in the historical covariance. ES price is Yahoo's front-month continuous contract (`ES=F`). Basis, carry, dividends and margin ignored. |
 
 **Limitations:**
 - yfinance is unofficial (rate limits, delays).

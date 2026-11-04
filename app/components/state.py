@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -90,6 +90,16 @@ def snapshot() -> tuple[RiskSnapshot | None, str | None, bool]:
     except ValueError as exc:
         return None, str(exc), provider.stale
     return snap, None, provider.stale
+
+
+def hedge_prices() -> dict[str, float]:
+    """Latest SPY and front-month E-mini (ES=F) prices; a ticker with no data is omitted."""
+    today = date.today()
+    try:
+        df = AppProvider().get_prices(["SPY", "ES=F"], today - timedelta(days=10), today)
+    except DataProviderError:
+        return {}
+    return {t: float(df[t].dropna().iloc[-1]) for t in df.columns if df[t].notna().any()}
 
 
 def require_snapshot() -> RiskSnapshot:
