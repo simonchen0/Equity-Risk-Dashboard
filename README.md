@@ -1,6 +1,6 @@
 # Equity Risk Dashboard
 
-[![CI](https://github.com/simonchen0/S-T-Project/actions/workflows/ci.yml/badge.svg)](https://github.com/simonchen0/S-T-Project/actions/workflows/ci.yml)
+[![CI](https://github.com/simonchen0/Equity-Risk-Dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/simonchen0/Equity-Risk-Dashboard/actions/workflows/ci.yml)
 
 An interactive risk dashboard for a long/short equity portfolio, inspired by the tools used on institutional equity trading desks. Add positions, see market value and P&L, measure beta, volatility, correlation and sector exposure, stress the book against S&P 500 moves, size an index hedge, and get flagged when the portfolio breaches risk limits.
 
