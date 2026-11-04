@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+from streamlit_local_storage import LocalStorage
 
 from riskdash.alerts.limits import Limits, load_limits
 from riskdash.alerts.rules import Alert, evaluate, metrics_from_snapshot
@@ -16,12 +17,13 @@ from riskdash.data.cache import CachedProvider
 from riskdash.data.provider import DataProviderError, SecurityMeta
 from riskdash.data.yfinance_provider import YFinanceProvider
 from riskdash.engine import RiskSnapshot, build_snapshot, excluded_warning
-from riskdash.persistence import load_state, save_state
+from riskdash.persistence import dump_state, parse_state
 from riskdash.portfolio.io import read_portfolio_csv
 from riskdash.portfolio.models import Portfolio
 
 ROOT = Path(__file__).resolve().parents[2]
 DEMO_CSV = ROOT / "data" / "sample_portfolio.csv"
+STORAGE_KEY = "riskdash_state"  # localStorage key in the visitor's own browser
 
 
 @st.cache_resource
@@ -57,31 +59,53 @@ class AppProvider:
 
 
 def init_state() -> None:
-    """First run of a session: restore the saved portfolio and settings, else the defaults."""
+    """Start a session with the defaults, then restore the visitor's browser-saved copy.
+
+    The browser reports its localStorage a moment after the first run, which triggers one
+    automatic rerun; the restore happens then. Until something is restored or saved, every
+    run checks again, so a visitor with nothing saved simply keeps the demo portfolio."""
     ss = st.session_state
     if "portfolio" not in ss:
-        saved = load_state(valid_lookbacks=tuple(LOOKBACKS))
-        ss.portfolio = saved.portfolio or read_portfolio_csv(DEMO_CSV)
+        ss.portfolio = read_portfolio_csv(DEMO_CSV)
         ss.portfolio_version = 0  # bump to reset widgets bound to the old portfolio
-        ss.limits = saved.limits or load_limits()
+        ss.limits = load_limits()
         ss.limits_version = 0  # bump to reset the limit-editor widgets
-        ss.lookback_label = saved.lookback or "1Y"
-        ss.blume = bool(saved.blume)
+        ss.lookback_label = "1Y"
+        ss.blume = False
+        ss.restored = False
         ss.saved_settings = (ss.lookback_label, ss.blume)
+        # Last state string known to match the browser; the defaults count as "nothing to save".
+        ss.saved_text = dump_state(ss.portfolio, ss.limits, ss.lookback_label, ss.blume)
+        ss.saves = 0
+    if not ss.restored:
+        raw = LocalStorage().getItem(STORAGE_KEY)
+        if raw:
+            saved = parse_state(raw, tuple(LOOKBACKS))
+            ss.portfolio = saved.portfolio or ss.portfolio
+            ss.portfolio_version += 1
+            ss.limits = saved.limits or ss.limits
+            ss.limits_version += 1
+            ss.lookback_label = saved.lookback or ss.lookback_label
+            ss.blume = bool(saved.blume)
+            ss.saved_settings = (ss.lookback_label, ss.blume)
+            ss.saved_text = dump_state(ss.portfolio, ss.limits, ss.lookback_label, ss.blume)
+            ss.restored = True
 
 
-def _save() -> None:
+def save_to_browser() -> None:
+    """Write the portfolio and settings to the browser if they changed since the last write.
+
+    Called at the top and bottom of every run, so a change made anywhere (including just before
+    an `st.rerun()`) is saved without the individual setters having to know about storage."""
     ss = st.session_state
-    save_state(ss.portfolio, ss.limits, ss.lookback_label, ss.blume)
-
-
-def save_settings_if_changed() -> None:
-    """Persist the sidebar-style settings (lookback, Blume) when the user changes them."""
-    ss = st.session_state
-    current = (ss.lookback_label, ss.blume)
-    if ss.saved_settings != current:
-        ss.saved_settings = current
-        _save()
+    ss.saved_settings = (ss.lookback_label, ss.blume)
+    text = dump_state(ss.portfolio, ss.limits, ss.lookback_label, ss.blume)
+    if text == ss.saved_text:
+        return
+    ss.saves += 1
+    LocalStorage().setItem(STORAGE_KEY, text, key=f"save_{ss.saves}")
+    ss.saved_text = text
+    ss.restored = True
 
 
 def get_portfolio() -> Portfolio:
@@ -91,7 +115,6 @@ def get_portfolio() -> Portfolio:
 def set_portfolio(portfolio: Portfolio) -> None:
     st.session_state.portfolio = portfolio
     st.session_state.portfolio_version += 1
-    _save()
 
 
 def load_demo() -> None:
@@ -105,7 +128,6 @@ def get_limits() -> Limits:
 def set_limits(limits: Limits) -> None:
     st.session_state.limits = limits
     st.session_state.limits_version += 1
-    _save()
 
 
 def current_alerts(snap: RiskSnapshot) -> list[Alert]:
