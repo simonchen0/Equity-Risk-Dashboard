@@ -6,7 +6,7 @@ import pytest
 from riskdash.data.cache import CachedProvider
 from riskdash.data.fixture_provider import FixtureProvider
 from riskdash.data.provider import DataProviderError
-from riskdash.engine import build_snapshot
+from riskdash.engine import build_snapshot, excluded_warning
 from riskdash.portfolio.models import Portfolio, Position
 
 TODAY = date(2026, 10, 30)
@@ -44,6 +44,7 @@ def test_unknown_ticker_is_excluded_with_warning(provider):
     snap = build_snapshot(make_book(Position(ticker="NOPE", quantity=1)), provider, today=TODAY)
     assert snap.excluded == ["NOPE"]
     assert "NOPE" in snap.warnings[0]
+    assert snap.warnings[0] == excluded_warning(snap.excluded)
     assert "NOPE" not in snap.positions.index
 
 

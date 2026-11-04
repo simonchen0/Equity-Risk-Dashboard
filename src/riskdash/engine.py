@@ -56,6 +56,14 @@ class RiskSnapshot:
         return df
 
 
+def excluded_warning(excluded: list[str]) -> str:
+    """The message for tickers that returned no market data."""
+    return (
+        f"No market data for {', '.join(excluded)} — excluded from NAV and risk. "
+        "Check the ticker symbols."
+    )
+
+
 def fetch_window(lookback: int, today: date) -> tuple[date, date]:
     """Calendar range that covers `lookback` trading days plus a buffer for holidays."""
     calendar_days = int(lookback * 365 / TRADING_DAYS) + 21
@@ -80,10 +88,7 @@ def build_snapshot(
     warnings: list[str] = []
     excluded = [t for t in tickers if t not in prices.columns]
     if excluded:
-        warnings.append(
-            f"No market data for {', '.join(excluded)} — excluded from NAV and risk. "
-            "Check the ticker symbols."
-        )
+        warnings.append(excluded_warning(excluded))
         portfolio = Portfolio(
             positions=[p for p in portfolio.positions if p.ticker not in excluded],
             cash=portfolio.cash,

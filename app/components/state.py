@@ -15,7 +15,7 @@ from riskdash.analytics.returns import LOOKBACKS
 from riskdash.data.cache import CachedProvider
 from riskdash.data.provider import DataProviderError, SecurityMeta
 from riskdash.data.yfinance_provider import YFinanceProvider
-from riskdash.engine import RiskSnapshot, build_snapshot
+from riskdash.engine import RiskSnapshot, build_snapshot, excluded_warning
 from riskdash.persistence import load_state, save_state
 from riskdash.portfolio.io import read_portfolio_csv
 from riskdash.portfolio.models import Portfolio
@@ -149,8 +149,10 @@ def require_snapshot() -> RiskSnapshot:
         st.stop()
     if stale:
         st.warning("Live data unavailable — showing the most recent cached prices.")
+    unrecognized = excluded_warning(snap.excluded) if snap.excluded else None
     for w in snap.warnings:
-        st.warning(w)
+        if w != unrecognized:  # shown on the Positions page only, where it can be fixed
+            st.warning(w)
     st.caption(
         f"Prices as of close {snap.as_of:%a %d %b %Y} (or latest intraday print) · "
         f"risk over {snap.n_obs} trading days · beta vs SPY"

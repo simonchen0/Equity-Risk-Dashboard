@@ -1,6 +1,7 @@
 import streamlit as st
-from components.state import get_portfolio, load_demo, set_portfolio
+from components.state import get_portfolio, load_demo, set_portfolio, snapshot
 
+from riskdash.engine import excluded_warning
 from riskdash.portfolio.io import (
     PortfolioImportError,
     portfolio_from_frame,
@@ -14,6 +15,13 @@ st.caption(
     "Quantity > 0 is long, < 0 is short. Average cost is optional (needed for unrealized P&L). "
     "Sector overrides the vendor classification."
 )
+
+# Tickers with no market data are dropped from NAV and risk; say so here, where they are edited.
+snap, error, _ = snapshot()
+if error:
+    st.error(error)
+elif snap.excluded:
+    st.warning(excluded_warning(snap.excluded))
 
 pf = get_portfolio()
 version = st.session_state.portfolio_version
