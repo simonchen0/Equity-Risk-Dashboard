@@ -6,6 +6,7 @@ can be negative (margin borrowing). NAV = cash + sum of signed market values.
 
 from __future__ import annotations
 
+import math
 import re
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -32,6 +33,8 @@ class Position(BaseModel):
     @field_validator("quantity")
     @classmethod
     def _nonzero(cls, v: float) -> float:
+        if not math.isfinite(v):
+            raise ValueError("quantity must be a finite number")
         if v == 0:
             raise ValueError("quantity must be non-zero (positive = long, negative = short)")
         return v
@@ -46,7 +49,7 @@ class Position(BaseModel):
 
 class Portfolio(BaseModel):
     positions: list[Position] = Field(default_factory=list)
-    cash: float = 0.0
+    cash: float = Field(default=0.0, allow_inf_nan=False)
 
     @model_validator(mode="after")
     def _unique_tickers(self) -> Portfolio:

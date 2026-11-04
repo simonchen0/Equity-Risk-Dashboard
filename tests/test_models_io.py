@@ -64,3 +64,22 @@ def test_csv_missing_columns():
 def test_csv_headers_case_insensitive_and_cash_summed():
     pf = read_portfolio_csv(io.StringIO("Ticker,Quantity\nAAPL,1\nCASH,100\ncash,50\n"))
     assert pf.cash == 150 and pf.tickers == ["AAPL"]
+
+
+@pytest.mark.parametrize("qty", ["", "nan", "inf", "-inf"])
+def test_csv_non_finite_quantity_rejected(qty):
+    with pytest.raises(PortfolioImportError, match="row 2.*not a number"):
+        read_portfolio_csv(io.StringIO(f"ticker,quantity\nAAPL,{qty}\n"))
+
+
+@pytest.mark.parametrize("qty", ["", "nan", "inf"])
+def test_csv_non_finite_cash_rejected(qty):
+    with pytest.raises(PortfolioImportError, match="row 3.*not a number"):
+        read_portfolio_csv(io.StringIO(f"ticker,quantity\nAAPL,1\nCASH,{qty}\n"))
+
+
+def test_model_rejects_non_finite_values():
+    with pytest.raises(ValidationError):
+        Position(ticker="AAPL", quantity=float("nan"))
+    with pytest.raises(ValidationError):
+        Portfolio(cash=float("inf"))

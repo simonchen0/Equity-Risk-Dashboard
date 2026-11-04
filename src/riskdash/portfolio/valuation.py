@@ -72,7 +72,7 @@ def value_portfolio(portfolio: Portfolio, last: pd.Series, prev_close: pd.Series
     df["day_change_pct"] = df["price"] / df["prev_close"] - 1
 
     nav = portfolio.cash + df["market_value"].sum()
-    if nav <= 0:
+    if not np.isfinite(nav) or nav <= 0:
         raise ValueError(f"NAV is {nav:,.0f}; weights require a positive NAV (add cash?)")
     prev_nav = portfolio.cash + (df["quantity"] * df["prev_close"]).sum()
     df["weight"] = df["market_value"] / nav

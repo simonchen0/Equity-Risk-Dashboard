@@ -7,6 +7,7 @@ The cash balance is a row with ticker `CASH` and the amount in `quantity`.
 from __future__ import annotations
 
 import io
+import math
 from pathlib import Path
 from typing import IO
 
@@ -43,6 +44,8 @@ def portfolio_from_frame(df: pd.DataFrame) -> Portfolio:
             continue  # tolerate blank lines / empty editor rows
         try:
             qty = float(row.get("quantity"))
+            if not math.isfinite(qty):
+                raise ValueError("not finite")
         except (TypeError, ValueError):
             errors.append(f"row {i}: quantity {row.get('quantity')!r} is not a number")
             continue
