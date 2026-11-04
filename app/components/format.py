@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import math
 
-POS, NEG, NEUTRAL = "#26a269", "#e5534b", "#8b949e"
+# Palette: charcoal surfaces, teal accent, muted greys (mirrors .streamlit/config.toml).
+BG, PANEL, BORDER = "#0f1519", "#151d23", "#233039"
+TEXT, MUTED = "#d9e2e6", "#8a9ba3"
+ACCENT = "#50d2c1"
+POS, NEG, WARN, NEUTRAL = "#2ebd85", "#ed7088", "#e3b341", MUTED
 
 
 def _bad(x: float | None) -> bool:

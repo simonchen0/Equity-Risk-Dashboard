@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 from components import format as fmt
 from components.state import current_alerts, get_limits, require_snapshot, set_limits
+from components.theme import kpi_strip, table_height
 from pydantic import ValidationError
 
 from riskdash.alerts.limits import Limits, load_limits
@@ -11,15 +12,18 @@ snap = require_snapshot()
 alerts = current_alerts(snap)
 
 counts = {s: sum(a.severity == s for a in alerts) for s in ("breach", "warn", "ok")}
-c = st.columns(3)
-c[0].metric("Breaches", counts["breach"], border=True, help="Metric is over its limit.")
-c[1].metric(
-    "Approaching limit",
-    counts["warn"],
-    border=True,
-    help=f"Metric has reached {get_limits().warn_fraction:.0%} of its limit.",
+kpi_strip(
+    [
+        dict(label="Breaches", value=counts["breach"], help="Metric is over its limit."),
+        dict(
+            label="Approaching limit",
+            value=counts["warn"],
+            help=f"Metric has reached {get_limits().warn_fraction:.0%} of its limit.",
+        ),
+        dict(label="Within limits", value=counts["ok"]),
+    ],
+    key="alerts",
 )
-c[2].metric("Within limits", counts["ok"], border=True)
 
 ITEM_RULES = ("single_name", "sector", "pair_correlation")
 STATUS = {"breach": "✖ Breach", "warn": "▲ Approaching", "ok": "✔ OK"}
@@ -46,7 +50,8 @@ st.dataframe(
     ),
     hide_index=True,
     width="stretch",
-    height=35 * (len(table) + 1) + 3,
+    height=table_height(len(table)),
+    row_height=28,
 )
 st.caption(
     "Single-name uses each position's absolute weight; sector uses the net weight (longs minus "

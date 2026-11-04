@@ -2,6 +2,7 @@ import pandas as pd
 import streamlit as st
 from components import format as fmt
 from components.state import hedge_prices, require_snapshot
+from components.theme import kpi_strip
 
 from riskdash.analytics.hedging import (
     ES_MULTIPLIER,
@@ -31,15 +32,18 @@ if "SPY" not in prices:
     )
     st.stop()
 
-c = st.columns(3)
-c[0].metric("Current beta", fmt.num(pb), border=True)
-c[1].metric(
-    "Dollar beta",
-    fmt.md(fmt.compact_money(snap.dollar_beta)),
-    border=True,
-    help="Dollar exposure to the S&P 500 implied by beta: P&L per 100% S&P move.",
+kpi_strip(
+    [
+        dict(label="Current beta", value=fmt.num(pb)),
+        dict(
+            label="Dollar beta",
+            value=fmt.md(fmt.compact_money(snap.dollar_beta)),
+            help="Dollar exposure to the S&P 500 implied by beta: P&L per 100% S&P move.",
+        ),
+        dict(label="NAV", value=fmt.md(fmt.compact_money(nav))),
+    ],
+    key="hedging",
 )
-c[2].metric("NAV", fmt.md(fmt.compact_money(nav)), border=True)
 
 # --- Inputs -----------------------------------------------------------------------------
 left, right = st.columns([1, 2])
@@ -98,6 +102,7 @@ st.dataframe(
         }
     ),
     width="stretch",
+    row_height=28,
     column_config={
         "Per unit": st.column_config.Column(
             "Exposure per unit",
@@ -118,7 +123,7 @@ if sel.units == 0:
 else:
     side = "Sell" if sel.units < 0 else "Buy"
     st.markdown(
-        f"### {side} {abs(sel.units):,} {label}  \n"
+        f"#### {side} {abs(sel.units):,} {label}  \n"
         + fmt.md(f"≈ {fmt.compact_money(abs(sel.notional))} of S&P 500 exposure")
     )
 if "ES=F" in prices:
@@ -188,6 +193,7 @@ def fmt_row(row: pd.Series) -> list[str]:
 st.dataframe(
     compare.apply(fmt_row, axis=1, result_type="expand").set_axis(compare.columns, axis=1),
     width="stretch",
+    row_height=28,
 )
 st.caption(
     "Gross and net exposure include the hedge position. Volatility uses the historical "

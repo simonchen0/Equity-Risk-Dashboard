@@ -3,6 +3,7 @@ import streamlit as st
 from components import format as fmt
 from components.charts import CONFIG, style
 from components.state import names, require_snapshot
+from components.theme import kpi_strip, table_height
 
 from riskdash.analytics.scenarios import DEFAULT_SHOCKS, position_pnl, scenario_grid
 
@@ -49,28 +50,33 @@ st.dataframe(
         subset=(["% of NAV"], slice(None)),
     ),
     width="stretch",
+    row_height=28,
+    height=table_height(2),
 )
 
 # --- Custom shock -----------------------------------------------------------------------
 st.subheader("Custom scenario")
-shock_pct = st.number_input(
+shock_pct = st.columns([1, 4])[0].number_input(
     "S&P 500 move (%)", min_value=-60.0, max_value=60.0, value=-10.0, step=1.0, format="%.1f"
 )
 shock = shock_pct / 100
 by_pos = position_pnl(mv, betas, [shock])[shock]
 total = by_pos.sum()
 
-c = st.columns(3)
-c[0].metric("Portfolio P&L", fmt.md(fmt.compact_money(total, signed=True)), border=True)
-c[1].metric("% of NAV", fmt.pct(total / v.nav, 2, signed=True), border=True)
-c[2].metric(
-    "Beta-implied portfolio move",
-    fmt.pct(snap.portfolio_beta * shock, 2, signed=True),
-    f"β {fmt.num(snap.portfolio_beta)} × {fmt.pct(shock, 1, signed=True)}",
-    delta_color="off",
-    delta_arrow="off",
-    border=True,
-    help="Same number as % of NAV: portfolio beta × S&P move.",
+kpi_strip(
+    [
+        dict(label="Portfolio P&L", value=fmt.md(fmt.compact_money(total, signed=True))),
+        dict(label="% of NAV", value=fmt.pct(total / v.nav, 2, signed=True)),
+        dict(
+            label="Beta-implied portfolio move",
+            value=fmt.pct(snap.portfolio_beta * shock, 2, signed=True),
+            delta=f"β {fmt.num(snap.portfolio_beta)} × {fmt.pct(shock, 1, signed=True)}",
+            delta_color="off",
+            delta_arrow="off",
+            help="Same number as % of NAV: portfolio beta × S&P move.",
+        ),
+    ],
+    key="scenario",
 )
 
 detail = pos[["market_value", "weight", "beta"]].copy()
@@ -90,7 +96,8 @@ st.dataframe(
         na_rep="—",
     ).map(fmt.pnl_color, subset=["pnl", "pnl_pct_nav"]),
     width="stretch",
-    height=min(35 * (len(detail) + 1) + 3, 600),
+    height=table_height(len(detail), max_rows=16),
+    row_height=28,
     column_config={
         "_index": st.column_config.Column("Ticker", pinned=True),
         "name": "Name",

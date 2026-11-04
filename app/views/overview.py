@@ -3,75 +3,93 @@ import streamlit as st
 from components import format as fmt
 from components.charts import CONFIG, style
 from components.state import current_alerts, names, require_snapshot, sector_map
+from components.theme import kpi_strip, status_line, table_height
 
 st.title("Portfolio overview")
 snap = require_snapshot()
 v = snap.valuation
 
-alerts = current_alerts(snap)
-breaches = [a for a in alerts if a.severity == "breach"]
-warns = [a for a in alerts if a.severity == "warn"]
-if breaches:
-    st.error(
-        f"**{len(breaches)} limit breach{'es' if len(breaches) > 1 else ''}:** "
-        + " · ".join(a.message for a in breaches),
-        icon=":material/error:",
-    )
-if warns:
-    st.warning(
-        f"**{len(warns)} approaching limit:** " + " · ".join(a.message for a in warns),
-        icon=":material/warning:",
-    )
-if not breaches and not warns:
-    st.success("All risk limits are clear.", icon=":material/check_circle:")
-st.page_link("views/alerts.py", label="View all limits and edit them", icon=":material/tune:")
+status_col, link_col = st.columns([5, 1], vertical_alignment="top")
+with status_col:
+    status_line(current_alerts(snap))
+link_col.page_link("views/alerts.py", label="Edit limits", icon=":material/tune:")
 
 # --- KPI header -------------------------------------------------------------------------
-c = st.columns(6)
-c[0].metric("NAV", fmt.md(fmt.compact_money(v.nav)), border=True)
-c[1].metric(
-    "Day P&L",
-    fmt.md(fmt.compact_money(v.day_pnl, signed=True)),
-    fmt.pct(v.day_return, signed=True),
-    border=True,
-    help="Mark-to-market vs previous close, assuming no trades today.",
-)
-c[2].metric(
-    "Unrealized P&L",
-    fmt.md(fmt.compact_money(v.unrealized_pnl, signed=True)),
-    border=True,
-    help="vs average cost, for positions that have one.",
-)
-c[3].metric(
-    "Beta (vs SPY)",
-    fmt.num(snap.portfolio_beta),
-    fmt.md(f"β-$ {fmt.compact_money(snap.dollar_beta)}"),
-    delta_color="off",
-    delta_arrow="off",
-    border=True,
-    help="Σ weight × beta. β-$ (dollar beta) = Σ market value × beta: the beta-equivalent "
-    "dollar exposure to the S&P 500.",
-)
-c[4].metric(
-    "Volatility (ann.)",
-    fmt.pct(snap.portfolio_vol, 1),
-    fmt.md(f"1-day 1σ ≈ {fmt.compact_money(snap.portfolio_vol / 252**0.5 * v.nav)}"),
-    delta_color="off",
-    delta_arrow="off",
-    border=True,
-    help="√(wᵀΣw) on daily returns × √252, using current weights.",
-)
-c[5].metric(
-    "Gross / Net",
-    f"{fmt.pct(v.gross_exposure, 0)} / {fmt.pct(v.net_exposure, 0)}",
-    fmt.md(f"L {fmt.compact_money(v.long_mv)} · S {fmt.compact_money(v.short_mv)}"),
-    delta_color="off",
-    delta_arrow="off",
-    border=True,
+kpi_strip(
+    [
+        dict(label="NAV", value=fmt.md(fmt.compact_money(v.nav))),
+        dict(
+            label="Day P&L",
+            value=fmt.md(fmt.compact_money(v.day_pnl, signed=True)),
+            delta=fmt.pct(v.day_return, signed=True),
+            help="Mark-to-market vs previous close, assuming no trades today.",
+        ),
+        dict(
+            label="Unrealized P&L",
+            value=fmt.md(fmt.compact_money(v.unrealized_pnl, signed=True)),
+            help="vs average cost, for positions that have one.",
+        ),
+        dict(
+            label="Beta (vs SPY)",
+            value=fmt.num(snap.portfolio_beta),
+            delta=fmt.md(f"β-$ {fmt.compact_money(snap.dollar_beta)}"),
+            delta_color="off",
+            delta_arrow="off",
+            help="Σ weight × beta. β-$ (dollar beta) = Σ market value × beta: the beta-equivalent "
+            "dollar exposure to the S&P 500.",
+        ),
+        dict(
+            label="Volatility (ann.)",
+            value=fmt.pct(snap.portfolio_vol, 1),
+            delta=fmt.md(f"1-day 1σ ≈ {fmt.compact_money(snap.portfolio_vol / 252**0.5 * v.nav)}"),
+            delta_color="off",
+            delta_arrow="off",
+            help="√(wᵀΣw) on daily returns × √252, using current weights.",
+        ),
+        dict(
+            label="Gross / Net",
+            value=f"{fmt.pct(v.gross_exposure, 0)} / {fmt.pct(v.net_exposure, 0)}",
+            delta=fmt.md(f"L {fmt.compact_money(v.long_mv)} · S {fmt.compact_money(v.short_mv)}"),
+            delta_color="off",
+            delta_arrow="off",
+        ),
+    ],
+    key="overview",
 )
 
-# --- Holdings ---------------------------------------------------------------------------
+# --- Charts -----------------------------------------------------------------------------
 pos = snap.positions
+
+
+def bar(series, title, help_text):
+    s = series.sort_values()
+    fig = go.Figure(
+        go.Bar(
+            x=s.values,
+            y=s.index,
+            orientation="h",
+            marker_color=[fmt.POS if x >= 0 else fmt.NEG for x in s.values],
+            hovertemplate="%{y}: %{x:.2%}<extra></extra>",
+        )
+    )
+    style(fig, height=17 * len(s) + 40).update_yaxes(tickfont=dict(family="monospace"))
+    st.subheader(title, help=help_text)
+    st.plotly_chart(fig, width="stretch", config=CONFIG)
+
+
+left, right = st.columns(2)
+with left:
+    bar(pos["weight"], "Weights", "Market value as % of NAV (shorts negative).")
+with right:
+    bar(
+        pos["beta_adj_exposure"],
+        "Beta-adjusted exposure",
+        "Weight × beta: each position's contribution to portfolio beta "
+        f"({fmt.num(snap.portfolio_beta)} in total).",
+    )
+
+
+# --- Holdings ---------------------------------------------------------------------------
 tickers = list(pos.index)
 pos.insert(0, "name", pos.index.map(names(tickers)))
 pos.insert(1, "sector", pos.index.map(sector_map(tickers)))
@@ -115,7 +133,8 @@ styled = table.style.format(
 st.dataframe(
     styled,
     width="stretch",
-    height=min(35 * (len(table) + 1) + 3, 600),
+    height=table_height(len(table), max_rows=16),
+    row_height=28,
     column_config={
         "_index": st.column_config.Column("Ticker", pinned=True),
         "name": "Name",
@@ -136,31 +155,3 @@ st.dataframe(
     },
 )
 st.caption(f"Cash {fmt.money(v.cash)} · {len(table)} positions")
-
-
-def bar(series, title, help_text):
-    s = series.sort_values()
-    fig = go.Figure(
-        go.Bar(
-            x=s.values,
-            y=s.index,
-            orientation="h",
-            marker_color=[fmt.POS if x >= 0 else fmt.NEG for x in s.values],
-            hovertemplate="%{y}: %{x:.2%}<extra></extra>",
-        )
-    )
-    style(fig, height=32 * len(s) + 40).update_yaxes(tickfont=dict(family="monospace"))
-    st.subheader(title, help=help_text)
-    st.plotly_chart(fig, width="stretch", config=CONFIG)
-
-
-left, right = st.columns(2)
-with left:
-    bar(pos["weight"], "Weights", "Market value as % of NAV (shorts negative).")
-with right:
-    bar(
-        pos["beta_adj_exposure"],
-        "Beta-adjusted exposure",
-        "Weight × beta: each position's contribution to portfolio beta "
-        f"({fmt.num(snap.portfolio_beta)} in total).",
-    )

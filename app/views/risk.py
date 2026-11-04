@@ -3,6 +3,7 @@ import streamlit as st
 from components import format as fmt
 from components.charts import CONFIG, DIVERGING, TEXT, style
 from components.state import require_snapshot, sector_map
+from components.theme import table_height
 
 from riskdash.analytics.correlation import (
     average_pairwise_correlation,
@@ -81,7 +82,8 @@ with right:
             na_rep="—",
         ),
         width="stretch",
-        height=35 * (len(table) + 1) + 3,
+        height=table_height(len(table)),
+        row_height=28,
         column_config={
             "_index": st.column_config.Column("Sector", pinned=True),
             "long": "Long",
@@ -148,5 +150,6 @@ with right:
         pairs[["pair", "corr"]].style.format({"corr": fmt.num}),
         hide_index=True,
         width="stretch",
+        row_height=28,
         column_config={"pair": "Pair", "corr": "ρ"},
     )
