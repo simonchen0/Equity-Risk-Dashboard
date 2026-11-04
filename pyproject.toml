@@ -1,0 +1,37 @@
+[project]
+name = "riskdash"
+version = "0.1.0"
+description = "Equity risk dashboard: positions, beta/vol, scenarios, hedging, and limit alerts"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.2",
+    "numpy>=2.0",
+    "yfinance>=0.2.50",
+    "plotly>=5.24",
+    "streamlit>=1.40",
+    "pydantic>=2.9",
+    "pyyaml>=6.0",
+    "pyarrow>=17.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3", "ruff>=0.8", "pre-commit>=4.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/riskdash"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "NPY"]
