@@ -16,6 +16,7 @@ from riskdash.data.cache import CachedProvider
 from riskdash.data.provider import DataProviderError, SecurityMeta
 from riskdash.data.yfinance_provider import YFinanceProvider
 from riskdash.engine import RiskSnapshot, build_snapshot
+from riskdash.persistence import load_state, save_state
 from riskdash.portfolio.io import read_portfolio_csv
 from riskdash.portfolio.models import Portfolio
 
@@ -56,15 +57,31 @@ class AppProvider:
 
 
 def init_state() -> None:
+    """First run of a session: restore the saved portfolio and settings, else the defaults."""
     ss = st.session_state
     if "portfolio" not in ss:
-        ss.portfolio = read_portfolio_csv(DEMO_CSV)
+        saved = load_state(valid_lookbacks=tuple(LOOKBACKS))
+        ss.portfolio = saved.portfolio or read_portfolio_csv(DEMO_CSV)
         ss.portfolio_version = 0  # bump to reset widgets bound to the old portfolio
-    if "limits" not in ss:
-        ss.limits = load_limits()
+        ss.limits = saved.limits or load_limits()
         ss.limits_version = 0  # bump to reset the limit-editor widgets
-    ss.setdefault("lookback_label", "1Y")
-    ss.setdefault("blume", False)
+        ss.lookback_label = saved.lookback or "1Y"
+        ss.blume = bool(saved.blume)
+        ss.saved_settings = (ss.lookback_label, ss.blume)
+
+
+def _save() -> None:
+    ss = st.session_state
+    save_state(ss.portfolio, ss.limits, ss.lookback_label, ss.blume)
+
+
+def save_settings_if_changed() -> None:
+    """Persist the sidebar-style settings (lookback, Blume) when the user changes them."""
+    ss = st.session_state
+    current = (ss.lookback_label, ss.blume)
+    if ss.saved_settings != current:
+        ss.saved_settings = current
+        _save()
 
 
 def get_portfolio() -> Portfolio:
@@ -74,6 +91,7 @@ def get_portfolio() -> Portfolio:
 def set_portfolio(portfolio: Portfolio) -> None:
     st.session_state.portfolio = portfolio
     st.session_state.portfolio_version += 1
+    _save()
 
 
 def load_demo() -> None:
@@ -87,6 +105,7 @@ def get_limits() -> Limits:
 def set_limits(limits: Limits) -> None:
     st.session_state.limits = limits
     st.session_state.limits_version += 1
+    _save()
 
 
 def current_alerts(snap: RiskSnapshot) -> list[Alert]:

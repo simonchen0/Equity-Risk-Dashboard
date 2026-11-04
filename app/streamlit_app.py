@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import streamlit as st
-from components.state import init_state
+from components.state import init_state, save_settings_if_changed
 from components.theme import inject_css
 
 from riskdash.analytics.returns import LOOKBACKS
@@ -47,6 +47,7 @@ blume_col.toggle(
     help="Shrinks raw beta toward 1: 0.67 × raw + 0.33 (Bloomberg's 'adjusted beta').",
 )
 
+save_settings_if_changed()
 nav.run()
 st.html(
     '<div class="footer-note">Prices: Yahoo Finance via yfinance, delayed. '

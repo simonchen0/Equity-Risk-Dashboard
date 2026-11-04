@@ -53,6 +53,8 @@ CASH,100000,,
 - Cash is a row with ticker `CASH`.
 - Invalid rows are reported by row number instead of being silently dropped.
 
+Your portfolio, alert limits, lookback and Blume setting are saved automatically to `~/.config/riskdash/state.json` and restored the next time you open the app. "Reset to demo portfolio" and "Reset to defaults" overwrite the saved copy. Set `RISKDASH_STATE_FILE` to use a different file, or `RISKDASH_PERSIST=0` to turn saving off (do this on a shared or public deployment, where one file would be shared by every visitor).
+
 Alert limits default to `config/default_limits.yaml` and can be edited per session on the **Alerts** page. The defaults are illustrative, not recommendations.
 
 ## How it works
@@ -66,6 +68,7 @@ src/riskdash/
   analytics/   returns, beta, volatility, correlation, exposure, scenarios, hedging
   alerts/      limits and the rules that evaluate them
   engine.py    ties data, valuation and risk into one snapshot
+  persistence.py  save/restore of portfolio and settings (one local JSON file)
 app/           Streamlit pages and shared components
 config/        default risk limits
 tests/         unit tests
