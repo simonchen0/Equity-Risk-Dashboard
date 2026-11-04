@@ -8,14 +8,6 @@ The application helps traders monitor portfolio performance, measure risk exposu
 
 The goal is a functional, accurate, and visually polished project that demonstrates practical equity trading and risk management skills.
 
-## Tech Stack
-- Python 3.11+
-- Streamlit for the web interface
-- Pandas and NumPy for financial calculations
-- Plotly for interactive charts
-- yfinance for historical market data
-- pytest for testing
-
 Keep the stack simple. Avoid unnecessary frameworks, dependencies, and infrastructure.
 
 ## Core Features
