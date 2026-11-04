@@ -30,17 +30,17 @@ Scenarios page: portfolio P&L across an S&P 500 shock grid (−20% to +20%, char
 **3. Hedging calculator** ✅ Done
 Hedging page: enter a target beta (default 0, market-neutral) and pick SPY, ES or MES. Shows exact and whole-unit trade sizes for all three instruments, the beta left over from rounding, and a before/after comparison for the chosen hedge (beta, dollar beta, volatility, net/gross exposure, P&L for S&P ±10%) plus a hedged vs unhedged scenario table.
 
-**4. Risk alerts** ⬜ Not started
-Configurable limits (YAML defaults plus UI overrides), each evaluated as OK / warn (≥ 80% of the limit) / breach:
-- single-name weight > 10%
-- sector weight > 30%
-- top-5 weight > 50%
-- portfolio beta outside a target band
-- volatility above target
-- gross/net exposure limits
-- highly correlated large positions (ρ > 0.85)
+**4. Risk alerts** ✅ Done
+Limits load from `config/default_limits.yaml` (validated; unknown keys are rejected) and can be edited per session on the Alerts page. Each rule reports OK, approaching (≥ 80% of the limit) or breach (over the limit); the Overview shows a banner and the Alerts page lists every rule:
+- single-name weight > 10% (absolute weight, so shorts count)
+- sector net weight > 30% (longs minus shorts)
+- top-5 weights > 50%
+- portfolio beta outside 0.00 to 1.00 (warning within 20% of the band's width from an edge)
+- annualized volatility > 15%
+- gross exposure > 150%, absolute net exposure > 100%
+- pair correlation > 0.85, among positions of at least 3% of NAV
 
-Alerts show on the Overview page.
+The default limits are illustrative, not recommendations.
 
 **Remaining infrastructure:** GitHub Actions CI (ruff and pytest), a methodology note in the UI, a README with screenshots, and deployment.
 

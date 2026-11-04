@@ -2,11 +2,29 @@ import plotly.graph_objects as go
 import streamlit as st
 from components import format as fmt
 from components.charts import CONFIG, style
-from components.state import names, require_snapshot, sector_map
+from components.state import current_alerts, names, require_snapshot, sector_map
 
 st.title("Portfolio overview")
 snap = require_snapshot()
 v = snap.valuation
+
+alerts = current_alerts(snap)
+breaches = [a for a in alerts if a.severity == "breach"]
+warns = [a for a in alerts if a.severity == "warn"]
+if breaches:
+    st.error(
+        f"**{len(breaches)} limit breach{'es' if len(breaches) > 1 else ''}:** "
+        + " · ".join(a.message for a in breaches),
+        icon=":material/error:",
+    )
+if warns:
+    st.warning(
+        f"**{len(warns)} approaching limit:** " + " · ".join(a.message for a in warns),
+        icon=":material/warning:",
+    )
+if not breaches and not warns:
+    st.success("All risk limits are clear.", icon=":material/check_circle:")
+st.page_link("views/alerts.py", label="View all limits and edit them", icon=":material/tune:")
 
 # --- KPI header -------------------------------------------------------------------------
 c = st.columns(6)

@@ -1,0 +1,13 @@
+# Default risk limits. Weights and exposures are fractions of NAV (0.10 = 10%).
+# These are illustrative starting points, not recommendations: set them to your own mandate.
+max_single_name_weight: 0.10      # largest |position weight|
+max_sector_net_weight: 0.30       # |net weight| per sector (longs minus shorts)
+max_top5_weight: 0.50             # sum of the five largest |position weights|
+beta_min: 0.00                    # portfolio beta vs SPY must stay inside [beta_min, beta_max]
+beta_max: 1.00
+max_volatility: 0.15              # annualized portfolio volatility
+max_gross_exposure: 1.50          # (long + |short|) / NAV
+max_abs_net_exposure: 1.00        # |long + short| / NAV
+max_pair_correlation: 0.85        # flag pairs of large positions above this correlation
+correlation_min_weight: 0.03      # "large" = |weight| at or above this
+warn_fraction: 0.80               # warn once a metric reaches this fraction of its limit

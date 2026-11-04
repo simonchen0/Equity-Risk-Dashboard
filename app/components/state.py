@@ -9,6 +9,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from riskdash.alerts.limits import Limits, load_limits
+from riskdash.alerts.rules import Alert, evaluate, metrics_from_snapshot
 from riskdash.analytics.returns import LOOKBACKS
 from riskdash.data.cache import CachedProvider
 from riskdash.data.provider import DataProviderError, SecurityMeta
@@ -58,6 +60,9 @@ def init_state() -> None:
     if "portfolio" not in ss:
         ss.portfolio = read_portfolio_csv(DEMO_CSV)
         ss.portfolio_version = 0  # bump to reset widgets bound to the old portfolio
+    if "limits" not in ss:
+        ss.limits = load_limits()
+        ss.limits_version = 0  # bump to reset the limit-editor widgets
     ss.setdefault("lookback_label", "1Y")
     ss.setdefault("blume", False)
 
@@ -73,6 +78,20 @@ def set_portfolio(portfolio: Portfolio) -> None:
 
 def load_demo() -> None:
     set_portfolio(read_portfolio_csv(DEMO_CSV))
+
+
+def get_limits() -> Limits:
+    return st.session_state.limits
+
+
+def set_limits(limits: Limits) -> None:
+    st.session_state.limits = limits
+    st.session_state.limits_version += 1
+
+
+def current_alerts(snap: RiskSnapshot) -> list[Alert]:
+    sectors = sector_map(list(snap.valuation.weights.index))
+    return evaluate(metrics_from_snapshot(snap, sectors), get_limits())
 
 
 def snapshot() -> tuple[RiskSnapshot | None, str | None, bool]:
