@@ -35,6 +35,7 @@ with st.sidebar:
 nav = st.navigation(
     [
         st.Page("views/overview.py", title="Overview", icon=":material/dashboard:", default=True),
+        st.Page("views/risk.py", title="Risk", icon=":material/analytics:"),
         st.Page("views/positions.py", title="Positions", icon=":material/edit_note:"),
     ]
 )

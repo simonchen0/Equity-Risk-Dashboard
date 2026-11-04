@@ -17,12 +17,12 @@ Run: `uv run streamlit run app/streamlit_app.py` · Test: `uv run pytest` · Lin
 **Foundation — Portfolio management** ✅ Done
 Editable positions (long/short), cash balance, CSV import/export with row-level validation, $10M demo book. Market value, NAV, weights, gross/net exposure, day P&L, unrealized P&L.
 
-**1. Risk analytics** 🟡 Partial
+**1. Risk analytics** ✅ Done
 - ✅ Portfolio beta and dollar beta (raw or Blume-adjusted), per-position beta and R²
 - ✅ Annualized portfolio and position volatility, per-position risk contribution
 - ✅ Lookback selector (6M / 1Y / 2Y), weights and beta-adjusted exposure charts
-- ⬜ Correlation matrix heatmap
-- ⬜ Sector exposure view (long / short / net by sector). Sector data is fetched and shown per position, but not yet aggregated.
+- ✅ Risk page: correlation heatmap (grouped by sector), average pairwise correlation, top-5 most correlated pairs
+- ✅ Risk page: sector exposure chart and table (long / short / net / gross, β contribution, share of risk)
 
 **2. Scenario analysis** ⬜ Not started
 P&L across an S&P 500 shock grid (−20% to +20%) plus a custom shock, total and per position.
@@ -60,6 +60,8 @@ Alerts show on the Overview page.
 | Portfolio beta | Σ wᵢ βᵢ; dollar beta = Σ MVᵢ βᵢ (P&L per 100% S&P move) |
 | Volatility | Sample std × √252; portfolio vol = √(wᵀΣw) with current weights and annualized sample covariance |
 | Risk contribution | wᵢ(Σw)ᵢ / wᵀΣw. Sums to 100%; negative means the position diversifies. |
+| Correlation | Pearson correlation of daily returns over the same common window; average pairwise = mean of off-diagonal values |
+| Sector exposure | Long = Σ positive weights, short = Σ negative weights, net = long + short, gross = Σ \|w\|. Sector = user override, otherwise Yahoo's sector, otherwise "Unclassified". |
 | Scenarios (planned) | P&L ≈ dollar beta × S&P move. Linear and systematic-only (no stock-specific or nonlinear effects). |
 | Hedge sizing (planned) | Notional H = (β_target − β_portfolio) × NAV. SPY shares = H / P_SPY; ES = H / (F × $50); MES = H / (F × $5). Rounded to whole units; basis, carry, dividends and margin ignored. |
 

@@ -11,6 +11,11 @@ def _bad(x: float | None) -> bool:
     return x is None or (isinstance(x, float) and math.isnan(x))
 
 
+def _round(x: float, decimals: int) -> float:
+    """Round and drop the sign of zero, so -0.0001 shows as 0.00 rather than -0.00."""
+    return round(x, decimals) + 0.0
+
+
 def money(x: float | None, decimals: int = 0, signed: bool = False) -> str:
     if _bad(x):
         return "—"
@@ -32,11 +37,12 @@ def compact_money(x: float | None, signed: bool = False) -> str:
 def pct(x: float | None, decimals: int = 2, signed: bool = False) -> str:
     if _bad(x):
         return "—"
-    return f"{x * 100:+.{decimals}f}%" if signed else f"{x * 100:.{decimals}f}%"
+    v = _round(x * 100, decimals)
+    return f"{v:+.{decimals}f}%" if signed and v != 0 else f"{v:.{decimals}f}%"
 
 
 def num(x: float | None, decimals: int = 2) -> str:
-    return "—" if _bad(x) else f"{x:,.{decimals}f}"
+    return "—" if _bad(x) else f"{_round(x, decimals):,.{decimals}f}"
 
 
 def md(text: str) -> str:

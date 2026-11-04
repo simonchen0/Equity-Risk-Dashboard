@@ -92,6 +92,25 @@ def snapshot() -> tuple[RiskSnapshot | None, str | None, bool]:
     return snap, None, provider.stale
 
 
+def require_snapshot() -> RiskSnapshot:
+    """Render data errors/warnings and the as-of caption; stop the page if there is no snapshot."""
+    snap, error, stale = snapshot()
+    if error:
+        st.error(error)
+        st.page_link("views/positions.py", label="Edit positions", icon=":material/edit_note:")
+        st.stop()
+    if stale:
+        st.warning("Live data unavailable — showing the most recent cached prices.")
+    for w in snap.warnings:
+        st.warning(w)
+    st.caption(
+        f"Prices as of close {snap.as_of:%a %d %b %Y} (or latest intraday print) · "
+        f"risk over {snap.n_obs} trading days · beta vs SPY"
+        + (" (Blume-adjusted)" if st.session_state.blume else "")
+    )
+    return snap
+
+
 def sector_map(tickers: Sequence[str]) -> dict[str, str]:
     """Manual override wins over the vendor sector."""
     overrides = {p.ticker: p.sector for p in get_portfolio().positions if p.sector}

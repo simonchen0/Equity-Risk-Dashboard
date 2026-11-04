@@ -1,26 +1,12 @@
 import plotly.graph_objects as go
 import streamlit as st
 from components import format as fmt
-from components.state import names, sector_map, snapshot
+from components.charts import CONFIG, style
+from components.state import names, require_snapshot, sector_map
 
 st.title("Portfolio overview")
-
-snap, error, stale = snapshot()
-if error:
-    st.error(error)
-    st.page_link("views/positions.py", label="Edit positions", icon=":material/edit_note:")
-    st.stop()
-
+snap = require_snapshot()
 v = snap.valuation
-if stale:
-    st.warning("Live data unavailable — showing the most recent cached prices.")
-for w in snap.warnings:
-    st.warning(w)
-st.caption(
-    f"Prices as of close {snap.as_of:%a %d %b %Y} (or latest intraday print) · "
-    f"risk over {snap.n_obs} trading days · beta vs SPY"
-    + (" (Blume-adjusted)" if st.session_state.blume else "")
-)
 
 # --- KPI header -------------------------------------------------------------------------
 c = st.columns(6)
@@ -145,16 +131,9 @@ def bar(series, title, help_text):
             hovertemplate="%{y}: %{x:.2%}<extra></extra>",
         )
     )
-    fig.update_layout(
-        height=32 * len(s) + 40,
-        margin=dict(l=0, r=10, t=10, b=0),
-        xaxis=dict(tickformat=".0%", gridcolor="rgba(139,148,158,0.2)", zerolinecolor="#8b949e"),
-        yaxis=dict(tickfont=dict(family="monospace")),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-    )
+    style(fig, height=32 * len(s) + 40).update_yaxes(tickfont=dict(family="monospace"))
     st.subheader(title, help=help_text)
-    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    st.plotly_chart(fig, width="stretch", config=CONFIG)
 
 
 left, right = st.columns(2)
