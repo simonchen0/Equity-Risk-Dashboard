@@ -24,8 +24,8 @@ Editable positions (long/short), cash balance, CSV import/export with row-level 
 - ✅ Risk page: correlation heatmap (grouped by sector), average pairwise correlation, top-5 most correlated pairs
 - ✅ Risk page: sector exposure chart and table (long / short / net / gross, β contribution, share of risk)
 
-**2. Scenario analysis** ⬜ Not started
-P&L across an S&P 500 shock grid (−20% to +20%) plus a custom shock, total and per position.
+**2. Scenario analysis** ✅ Done
+Scenarios page: portfolio P&L across an S&P 500 shock grid (−20% to +20%, chart and table, in $ and % of NAV), plus a custom shock input with a per-position breakdown (biggest losses first).
 
 **3. Hedging calculator** ⬜ Not started
 Given a target beta, compute SPY shares and ES/MES futures contracts, the residual beta after rounding, and before/after metrics with the hedge applied.
@@ -62,7 +62,7 @@ Alerts show on the Overview page.
 | Risk contribution | wᵢ(Σw)ᵢ / wᵀΣw. Sums to 100%; negative means the position diversifies. |
 | Correlation | Pearson correlation of daily returns over the same common window; average pairwise = mean of off-diagonal values |
 | Sector exposure | Long = Σ positive weights, short = Σ negative weights, net = long + short, gross = Σ \|w\|. Sector = user override, otherwise Yahoo's sector, otherwise "Unclassified". |
-| Scenarios (planned) | P&L ≈ dollar beta × S&P move. Linear and systematic-only (no stock-specific or nonlinear effects). |
+| Scenarios | P&L_i = market value_i × beta_i × S&P move; total = dollar beta × move; % of NAV uses current NAV. A position with a missing beta makes the total NaN rather than understating it. Linear and systematic-only (no stock-specific or nonlinear effects). |
 | Hedge sizing (planned) | Notional H = (β_target − β_portfolio) × NAV. SPY shares = H / P_SPY; ES = H / (F × $50); MES = H / (F × $5). Rounded to whole units; basis, carry, dividends and margin ignored. |
 
 **Limitations:**
