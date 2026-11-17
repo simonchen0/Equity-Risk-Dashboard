@@ -1,7 +1,15 @@
+import math
+
 import pandas as pd
 import streamlit as st
 from components import format as fmt
-from components.state import current_alerts, get_limits, require_snapshot, set_limits
+from components.state import (
+    current_alerts,
+    get_limits,
+    require_snapshot,
+    sector_map,
+    set_limits,
+)
 from components.theme import kpi_strip, table_height
 from pydantic import ValidationError
 
@@ -10,6 +18,15 @@ from riskdash.alerts.limits import Limits, load_limits
 st.title("Alerts")
 snap = require_snapshot()
 alerts = current_alerts(snap)
+
+no_sector = [
+    t for t, s in sector_map(list(snap.valuation.weights.index)).items() if s == "Unclassified"
+]
+if no_sector:
+    st.warning(
+        f"No sector data for {', '.join(no_sector)}: grouped as 'Unclassified' in the sector "
+        "limit. Set a sector on the Positions page if you want them counted elsewhere."
+    )
 
 counts = {s: sum(a.severity == s for a in alerts) for s in ("breach", "warn", "ok")}
 kpi_strip(
@@ -26,11 +43,13 @@ kpi_strip(
 )
 
 ITEM_RULES = ("single_name", "sector", "pair_correlation")
-STATUS = {"breach": "✖ Breach", "warn": "▲ Approaching", "ok": "✔ OK"}
-COLOR = {"breach": fmt.NEG, "warn": "#e3b341", "ok": fmt.POS}
+STATUS = {"breach": "✖ Breach", "warn": "▲ Approaching", "unknown": "? No data", "ok": "✔ OK"}
+COLOR = {"breach": fmt.NEG, "warn": "#e3b341", "unknown": fmt.MUTED, "ok": fmt.POS}
 
 
 def value_text(a) -> str:
+    if not math.isfinite(a.value):
+        return "n/a"
     return f"{a.value:.1%}" if a.kind == "pct" else f"{a.value:.2f}"
 
 

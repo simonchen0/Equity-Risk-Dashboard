@@ -16,6 +16,15 @@ def annualized_cov(returns: pd.DataFrame) -> pd.DataFrame:
     return returns.cov(ddof=1) * TRADING_DAYS
 
 
+def one_day_move(annual_vol: float, nav: float) -> float:
+    """Typical (1 standard deviation) one-day move in NAV, in dollars.
+
+    Scales annual volatility by sqrt(252) and assumes normally distributed returns. This is a
+    volatility estimate from history, not a Value-at-Risk figure or a forecast.
+    """
+    return annual_vol / np.sqrt(TRADING_DAYS) * nav
+
+
 def portfolio_vol(weights: pd.Series, cov: pd.DataFrame) -> float:
     """sqrt(w' Σ w) with NAV weights, so the result is volatility of NAV returns."""
     w = weights.to_numpy(dtype=float)

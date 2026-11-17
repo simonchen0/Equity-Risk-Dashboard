@@ -6,10 +6,16 @@ from riskdash.data.fixture_provider import FixtureProvider
 from riskdash.data.provider import SecurityMeta
 
 
-def make_prices(betas: dict[str, float], n: int = 400, seed: int = 7, idio: float = 0.01):
+def make_prices(
+    betas: dict[str, float],
+    n: int = 400,
+    seed: int = 7,
+    idio: float = 0.01,
+    end: str | pd.Timestamp = "2026-10-30",
+):
     """Synthetic adjusted closes where r_i = beta_i * r_SPY + idiosyncratic noise."""
     rng = np.random.default_rng(seed)
-    dates = pd.bdate_range(end="2026-10-30", periods=n + 1)
+    dates = pd.bdate_range(end=end, periods=n + 1)
     r_m = rng.normal(0.0004, 0.01, n)
     rets = {"SPY": r_m}
     for t, b in betas.items():

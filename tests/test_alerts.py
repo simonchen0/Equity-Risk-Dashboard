@@ -9,6 +9,8 @@ from riskdash.alerts.limits import DEFAULT_LIMITS_PATH, Limits, load_limits
 from riskdash.alerts.rules import (
     BREACH,
     OK,
+    SEVERITY_ORDER,
+    UNKNOWN,
     WARN,
     RiskMetrics,
     evaluate,
@@ -88,6 +90,21 @@ def test_severity_boundaries():
     assert severity(0.08, 0.10, 0.8) == WARN  # exactly 80% of the limit
     assert severity(0.10, 0.10, 0.8) == WARN  # at the limit is not yet over it
     assert severity(0.1001, 0.10, 0.8) == BREACH
+
+
+def test_non_finite_metrics_are_unknown_not_ok():
+    assert severity(float("nan"), 0.10, 0.8) == UNKNOWN
+    assert severity(float("inf"), 0.10, 0.8) == UNKNOWN
+    alerts = evaluate(metrics({"A": 0.05}, beta=float("nan"), vol=float("nan")), LIMITS)
+    for rule in ("beta", "volatility"):
+        (a,) = by_rule(alerts, rule)
+        assert a.severity == UNKNOWN and "n/a" in a.detail
+    assert by_rule(alerts, "gross")[0].severity == OK  # finite metrics are unaffected
+
+
+def test_nan_item_value_is_flagged_unknown():
+    a = by_rule(evaluate(metrics({"A": 0.05, "B": float("nan")}), LIMITS), "single_name")
+    assert [(x.detail, x.severity) for x in a] == [("B n/a", UNKNOWN)]
 
 
 def test_single_name_flags_each_offender_including_shorts():
@@ -184,8 +201,7 @@ def test_every_rule_reports_and_results_are_sorted_most_severe_first():
         "net",
         "pair_correlation",
     }
-    order = {BREACH: 0, WARN: 1, OK: 2}
-    ranks = [order[a.severity] for a in alerts]
+    ranks = [SEVERITY_ORDER[a.severity] for a in alerts]
     assert ranks == sorted(ranks) and alerts[0].severity == BREACH
 
 

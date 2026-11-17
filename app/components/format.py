@@ -23,6 +23,7 @@ def _round(x: float, decimals: int) -> float:
 def money(x: float | None, decimals: int = 0, signed: bool = False) -> str:
     if _bad(x):
         return "—"
+    x = _round(x, decimals)  # so -0.4 shows as $0, not -$0
     sign = "+" if signed and x > 0 else "-" if x < 0 else ""
     return f"{sign}${abs(x):,.{decimals}f}"
 
@@ -30,6 +31,7 @@ def money(x: float | None, decimals: int = 0, signed: bool = False) -> str:
 def compact_money(x: float | None, signed: bool = False) -> str:
     if _bad(x):
         return "—"
+    x = _round(x, 0) if abs(x) < 1e3 else x  # so -0.4 shows as $0, not -$0
     sign = "+" if signed and x > 0 else "-" if x < 0 else ""
     a = abs(x)
     for div, suffix in ((1e9, "B"), (1e6, "M"), (1e3, "K")):

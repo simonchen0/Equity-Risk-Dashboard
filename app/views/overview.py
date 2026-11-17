@@ -5,6 +5,8 @@ from components.charts import CONFIG, style
 from components.state import current_alerts, names, require_snapshot, sector_map
 from components.theme import kpi_strip, status_line, table_height
 
+from riskdash.analytics.volatility import one_day_move
+
 st.title("Portfolio overview")
 snap = require_snapshot()
 v = snap.valuation
@@ -41,7 +43,9 @@ kpi_strip(
         dict(
             label="Volatility (ann.)",
             value=fmt.pct(snap.portfolio_vol, 1),
-            delta=fmt.md(f"1-day 1σ ≈ {fmt.compact_money(snap.portfolio_vol / 252**0.5 * v.nav)}"),
+            delta=fmt.md(
+                f"1-day 1σ ≈ {fmt.compact_money(one_day_move(snap.portfolio_vol, v.nav))}"
+            ),
             delta_color="off",
             delta_arrow="off",
             help="√(wᵀΣw) on daily returns × √252, using current weights.",

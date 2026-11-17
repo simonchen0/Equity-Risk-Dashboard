@@ -46,12 +46,31 @@ class CachedProvider:
     def _fresh(self, path: Path, ttl: float) -> bool:
         return path.exists() and time.time() - path.stat().st_mtime < ttl
 
+    @staticmethod
+    def _read_prices(path: Path) -> pd.DataFrame | None:
+        """A cached frame, or None if missing. A corrupt file is deleted so it gets refetched."""
+        if not path.exists():
+            return None
+        try:
+            return pd.read_parquet(path)
+        except Exception:  # truncated/corrupt parquet: any parser error means "not usable"
+            log.warning("Discarding unreadable cache file %s", path.name)
+            path.unlink(missing_ok=True)
+            return None
+
+    @staticmethod
+    def _write_prices(df: pd.DataFrame, path: Path) -> None:
+        """Write via a temp file so a crash mid-write never leaves a half-written cache entry."""
+        tmp = path.with_name(path.name + ".tmp")
+        df.to_parquet(tmp)
+        tmp.replace(path)
+
     def get_prices(self, tickers: Sequence[str], start: date, end: date) -> pd.DataFrame:
         tickers = sorted(set(tickers))
         path = self.dir / f"prices_{self._key(tickers, start, end)}.parquet"
         self.served_stale = False
-        if self._fresh(path, self.price_ttl_s):
-            return pd.read_parquet(path)
+        if self._fresh(path, self.price_ttl_s) and (cached := self._read_prices(path)) is not None:
+            return cached
         try:
             df = self.inner.get_prices(tickers, start, end)
         except DataProviderError:
@@ -61,16 +80,15 @@ class CachedProvider:
             log.warning("Vendor failed; serving stale cached prices")
             self.served_stale = True
             return stale.loc[pd.Timestamp(start) : pd.Timestamp(end)]
-        df.to_parquet(path)
-        df.to_parquet(self._stale_path(tickers))
+        self._write_prices(df, path)
+        self._write_prices(df, self._stale_path(tickers))
         return df
 
     def _stale_path(self, tickers: list[str]) -> Path:
         return self.dir / f"prices_latest_{self._key(tickers)}.parquet"
 
     def _latest_stale(self, tickers: list[str]) -> pd.DataFrame | None:
-        path = self._stale_path(tickers)
-        return pd.read_parquet(path) if path.exists() else None
+        return self._read_prices(self._stale_path(tickers))
 
     def get_meta(self, tickers: Sequence[str]) -> dict[str, SecurityMeta]:
         out: dict[str, SecurityMeta] = {}
@@ -78,9 +96,13 @@ class CachedProvider:
         for t in tickers:
             path = self.dir / f"meta_{self._key(t)}.json"
             if self._fresh(path, self.meta_ttl_s):
-                out[t] = SecurityMeta(**json.loads(path.read_text()))
-            else:
-                missing.append(t)
+                try:
+                    out[t] = SecurityMeta(**json.loads(path.read_text()))
+                    continue
+                except (ValueError, TypeError, OSError):  # corrupt JSON or unexpected fields
+                    log.warning("Discarding unreadable cache file %s", path.name)
+                    path.unlink(missing_ok=True)
+            missing.append(t)
         if missing:
             for t, meta in self.inner.get_meta(missing).items():
                 out[t] = meta

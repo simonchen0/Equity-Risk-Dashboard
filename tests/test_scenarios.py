@@ -67,3 +67,10 @@ def test_grid_total_is_nan_when_any_beta_missing():
     mv = pd.Series({"A": 1e6, "B": 1e6})
     grid = scenario_grid(mv, pd.Series({"A": 1.0}), 2e6, [-0.1])
     assert np.isnan(grid.loc[-0.1, "pnl"])
+
+
+def test_beta_pnl_hand_computed():
+    from riskdash.analytics.scenarios import beta_pnl
+
+    assert beta_pnl(1.2, 1_000_000, -0.10) == pytest.approx(-120_000)
+    assert beta_pnl(0.0, 1_000_000, 0.10) == 0.0

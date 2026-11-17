@@ -111,3 +111,34 @@ def test_meta_cache(provider, tmp_path):
         .name
         == "Alpha Inc"
     )
+
+
+def test_corrupt_price_cache_is_discarded_and_refetched(provider, tmp_path):
+    flaky = FlakyProvider(provider)
+    cached = CachedProvider(flaky, cache_dir=tmp_path, price_ttl_s=3600)
+    good = cached.get_prices(["AAA", "SPY"], date(2026, 1, 1), TODAY)
+    for f in tmp_path.glob("prices_*.parquet"):  # simulate a truncated write
+        f.write_bytes(b"not parquet")
+    again = cached.get_prices(["AAA", "SPY"], date(2026, 1, 1), TODAY)
+    assert flaky.calls == 2  # refetched instead of crashing
+    pd.testing.assert_frame_equal(good, again, check_freq=False)
+    assert not list(tmp_path.glob("*.tmp"))  # atomic write leaves no temp files
+
+
+def test_corrupt_stale_file_does_not_mask_the_vendor_error(provider, tmp_path):
+    flaky = FlakyProvider(provider)
+    cached = CachedProvider(flaky, cache_dir=tmp_path, price_ttl_s=0)
+    cached.get_prices(["AAA"], date(2026, 1, 1), TODAY)
+    for f in tmp_path.glob("prices_*.parquet"):
+        f.write_bytes(b"garbage")
+    flaky.fail = True
+    with pytest.raises(DataProviderError):
+        cached.get_prices(["AAA"], date(2026, 1, 1), TODAY)
+
+
+def test_corrupt_meta_cache_is_refetched(provider, tmp_path):
+    cached = CachedProvider(provider, cache_dir=tmp_path)
+    cached.get_meta(["AAA"])
+    for f in tmp_path.glob("meta_*.json"):
+        f.write_text("{broken")
+    assert cached.get_meta(["AAA"])["AAA"].sector == "Technology"

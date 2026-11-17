@@ -14,6 +14,11 @@ import pandas as pd
 DEFAULT_SHOCKS = (-0.20, -0.15, -0.10, -0.05, -0.025, 0.0, 0.025, 0.05, 0.10, 0.15, 0.20)
 
 
+def beta_pnl(beta: float, nav: float, shock: float) -> float:
+    """Portfolio P&L ($) for an S&P 500 move of `shock` (fraction): beta * NAV * shock."""
+    return beta * nav * shock
+
+
 def position_pnl(
     market_values: pd.Series, betas: pd.Series, shocks: Sequence[float]
 ) -> pd.DataFrame:

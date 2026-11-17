@@ -1,9 +1,10 @@
 """Evaluate a portfolio's risk metrics against its limits.
 
 Severity: `breach` when a metric exceeds its limit, `warn` once it reaches `warn_fraction`
-of the limit, otherwise `ok`. For the beta band, `warn` means within (1 - warn_fraction)
-of the band's width from either edge. Rules that apply per item (names, sectors, pairs)
-emit one alert per item at warn or worse, or a single `ok` alert showing the worst item.
+of the limit, otherwise `ok`. A non-finite metric is `unknown`, never `ok`. For the beta band,
+`warn` means within (1 - warn_fraction) of the band's width from either edge. Rules that
+apply per item (names, sectors, pairs) emit one alert per item at warn or worse, or a single
+`ok` alert showing the worst item.
 """
 
 from __future__ import annotations
@@ -18,8 +19,8 @@ from riskdash.alerts.limits import Limits
 from riskdash.analytics.correlation import correlation_matrix
 from riskdash.engine import RiskSnapshot
 
-OK, WARN, BREACH = "ok", "warn", "breach"
-SEVERITY_ORDER = {BREACH: 0, WARN: 1, OK: 2}
+OK, WARN, BREACH, UNKNOWN = "ok", "warn", "breach", "unknown"
+SEVERITY_ORDER = {BREACH: 0, WARN: 1, UNKNOWN: 2, OK: 3}
 EPS = 1e-12  # so a value exactly at a threshold isn't missed by float noise
 
 
@@ -70,6 +71,8 @@ def metrics_from_snapshot(snap: RiskSnapshot, sectors: Mapping[str, str]) -> Ris
 
 
 def severity(value: float, limit: float, warn_fraction: float) -> str:
+    if not np.isfinite(value):  # NaN compares False to everything, which would read as `ok`
+        return UNKNOWN
     if value > limit + EPS:
         return BREACH
     if value >= limit * warn_fraction - EPS:
@@ -78,10 +81,12 @@ def severity(value: float, limit: float, warn_fraction: float) -> str:
 
 
 def _pct(x: float) -> str:
-    return f"{x:.1%}"
+    return f"{x:.1%}" if np.isfinite(x) else "n/a"
 
 
 def _text(x: float, kind: str) -> str:
+    if not np.isfinite(x):
+        return "n/a"
     return _pct(x) if kind == "pct" else f"{x:.2f}"
 
 
@@ -111,13 +116,15 @@ def _single(rule: str, label: str, value: float, limit: float, limits: Limits) -
 def _beta_alert(beta: float, limits: Limits) -> Alert:
     lo, hi = limits.beta_min, limits.beta_max
     margin = (1 - limits.warn_fraction) * (hi - lo)
-    if beta < lo - EPS or beta > hi + EPS:
+    if not np.isfinite(beta):
+        sev = UNKNOWN
+    elif beta < lo - EPS or beta > hi + EPS:
         sev = BREACH
     elif beta < lo + margin - EPS or beta > hi - margin + EPS:
         sev = WARN
     else:
         sev = OK
-    return Alert("beta", "Portfolio beta", sev, beta, hi, f"{beta:.2f}", "num", limit_low=lo)
+    return Alert("beta", "Portfolio beta", sev, beta, hi, _text(beta, "num"), "num", limit_low=lo)
 
 
 def _correlation_alerts(m: RiskMetrics, limits: Limits) -> list[Alert]:
@@ -126,7 +133,8 @@ def _correlation_alerts(m: RiskMetrics, limits: Limits) -> list[Alert]:
         return []
     sub = m.corr.loc[large, large]
     mask = np.triu(np.ones(sub.shape, dtype=bool), k=1)
-    pairs = sub.where(mask).stack()
+    # Keep the upper triangle only. pandas 3's stack() no longer drops the masked-out NaNs.
+    pairs = sub.where(mask).stack().dropna()
     pairs.index = [f"{a} / {b}" for a, b in pairs.index]
     return _per_item(
         "pair_correlation", "Pair correlation", pairs, limits.max_pair_correlation, limits, "num"

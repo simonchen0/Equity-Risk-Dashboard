@@ -108,6 +108,15 @@ def save_to_browser() -> None:
     ss.restored = True
 
 
+@st.cache_resource
+def _demo_portfolio() -> Portfolio:
+    return read_portfolio_csv(DEMO_CSV)
+
+
+def is_demo_portfolio() -> bool:
+    return get_portfolio() == _demo_portfolio()
+
+
 def get_portfolio() -> Portfolio:
     return st.session_state.portfolio
 
@@ -157,7 +166,7 @@ def hedge_prices() -> dict[str, float]:
     today = date.today()
     try:
         df = AppProvider().get_prices(["SPY", "ES=F"], today - timedelta(days=10), today)
-    except DataProviderError:
+    except (DataProviderError, ValueError):
         return {}
     return {t: float(df[t].dropna().iloc[-1]) for t in df.columns if df[t].notna().any()}
 
@@ -169,6 +178,12 @@ def require_snapshot() -> RiskSnapshot:
         st.error(error)
         st.page_link("views/positions.py", label="Edit positions", icon=":material/edit_note:")
         st.stop()
+    if is_demo_portfolio():
+        st.info(
+            "Demo portfolio: sample positions with illustrative cost bases and cash. Prices and "
+            "risk are computed from real market data. Replace it on the Positions page.",
+            icon=":material/info:",
+        )
     if stale:
         st.warning("Live data unavailable — showing the most recent cached prices.")
     unrecognized = excluded_warning(snap.excluded) if snap.excluded else None

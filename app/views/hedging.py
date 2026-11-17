@@ -11,7 +11,7 @@ from riskdash.analytics.hedging import (
     hedged_weights,
     size_hedge,
 )
-from riskdash.analytics.scenarios import DEFAULT_SHOCKS
+from riskdash.analytics.scenarios import DEFAULT_SHOCKS, beta_pnl
 from riskdash.analytics.volatility import annualized_cov
 
 st.title("Hedging")
@@ -140,10 +140,6 @@ cov = annualized_cov(snap.returns)
 shocks = [-0.10, 0.10]
 
 
-def pnl(beta: float, shock: float) -> float:
-    return beta * nav * shock
-
-
 compare = pd.DataFrame(
     {
         "Before": [
@@ -152,7 +148,7 @@ compare = pd.DataFrame(
             snap.portfolio_vol,
             v.net_exposure,
             v.gross_exposure,
-            *[pnl(pb, s) for s in shocks],
+            *[beta_pnl(pb, nav, s) for s in shocks],
         ],
         "After": [
             sel.post_beta,
@@ -160,7 +156,7 @@ compare = pd.DataFrame(
             hedged_vol(w, sel.notional, nav, cov),
             w_after.sum(),
             w_after.abs().sum(),
-            *[pnl(sel.post_beta, s) for s in shocks],
+            *[beta_pnl(sel.post_beta, nav, s) for s in shocks],
         ],
     },
     index=[
@@ -202,8 +198,8 @@ st.caption(
 
 grid = pd.DataFrame(
     {
-        "Unhedged": [pnl(pb, s) for s in DEFAULT_SHOCKS],
-        "Hedged": [pnl(sel.post_beta, s) for s in DEFAULT_SHOCKS],
+        "Unhedged": [beta_pnl(pb, nav, s) for s in DEFAULT_SHOCKS],
+        "Hedged": [beta_pnl(sel.post_beta, nav, s) for s in DEFAULT_SHOCKS],
     },
     index=[fmt.pct(s, 1, signed=True) if s else "0%" for s in DEFAULT_SHOCKS],
 ).T

@@ -84,3 +84,11 @@ def test_annualization(synthetic_prices):
     r = daily_returns(synthetic_prices)
     assert annualized_vol(r)["SPY"] == pytest.approx(r["SPY"].std() * np.sqrt(252))
     assert annualized_cov(r).loc["SPY", "SPY"] == pytest.approx(annualized_vol(r)["SPY"] ** 2)
+
+
+def test_one_day_move_scales_by_sqrt_252():
+    from riskdash.analytics.volatility import one_day_move
+
+    # 16% annual vol on $1M: 0.16 / sqrt(252) = 1.008% a day
+    assert one_day_move(0.16, 1_000_000) == pytest.approx(0.16 / 252**0.5 * 1_000_000)
+    assert one_day_move(0.0, 1_000_000) == 0.0

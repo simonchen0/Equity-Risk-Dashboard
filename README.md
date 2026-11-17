@@ -79,6 +79,10 @@ Key assumptions, in brief (full definitions are in [SPEC.md](SPEC.md)):
 - Beta is the regression slope of daily returns on SPY over the selected window (6M, 1Y or 2Y). Volatility is annualized with √252 from the sample covariance of the same window.
 - Scenario P&L is `market value × beta × S&P move`. It is a linear, market-only estimate.
 - Hedge size is `(target beta − current beta) × NAV`, assuming the hedge moves one-for-one with the S&P 500.
+- Prices are dividend-adjusted closes, so Day P&L and returns are total-return based: on an ex-dividend day they differ from the raw price change by the dividend.
+- The "1-day 1σ" figure on the Overview is annual volatility ÷ √252 × NAV, assuming normally distributed returns. It is a historical volatility estimate, not a Value-at-Risk number; the app has no VaR or drawdown metric.
+- The pair-correlation alert looks at the correlation between large positions regardless of long/short direction. A long and a short that move together offset each other, so that alert can overstate risk for a hedged pair.
+- A ticker's latest price is its own last available close. A halted or delisted ticker is valued at that stale price without a separate warning.
 
 ## Limitations
 
