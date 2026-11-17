@@ -44,7 +44,9 @@ jobs:
               except Exception:
                   print("App already awake")
               # Fails the job (and sends GitHub's failure email) if the app never renders.
-              page.wait_for_selector('[data-testid="stApp"]', timeout=120_000)
+              # Streamlit Cloud renders the app inside an iframe, so look for stApp there.
+              app = page.frame_locator("iframe").first.locator('[data-testid="stApp"]')
+              app.wait_for(state="visible", timeout=120_000)
               page.wait_for_timeout(10_000)  # let the websocket session establish
               print("App loaded:", page.title())
           PY
